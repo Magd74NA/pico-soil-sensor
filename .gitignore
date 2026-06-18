@@ -1,0 +1,17 @@
+# Build outputs (CMake)
+cmake-build-*/
+build/
+
+# Build outputs (Makefile)
+*.o
+*.elf
+*.bin
+*.hex
+*.dis
+*.map
+
+# Generated boot2 artifacts (regenerated on build)
+boot2_padded_checksummed.S
+boot2.o
+boot2.elf
+boot2.bin

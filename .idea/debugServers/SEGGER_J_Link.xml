@@ -1,0 +1,13 @@
+<component name="DebugServers">
+  <jlink-debug-target name="SEGGER J-Link" uniqueID="a1b2c3d4-1111-2222-3333-444455556666" selected="true">
+    <debugger version="1">
+      <debugger toolchainName="embedded" />
+      <env />
+    </debugger>
+    <gdbserver exe="/bin/JLinkGDBServerCLExe" />
+    <console port="2334" type="SEMIHOSTING" />
+    <target device="RP2040_M0_0" interface="SWD" speed="4000" reset-before="false" />
+    <connection port="2331" warmup-ms="500" />
+    <swo />
+  </jlink-debug-target>
+</component>

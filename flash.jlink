@@ -1,0 +1,8 @@
+device RP2040_M0_0
+si SWD
+speed 4000
+connect
+loadfile firmware.hex
+r
+go
+exit

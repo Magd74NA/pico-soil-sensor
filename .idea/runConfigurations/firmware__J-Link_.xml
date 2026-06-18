@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="firmware (J-Link)" type="com.jetbrains.cidr.embedded.openocd.conf.type" factoryName="com.jetbrains.cidr.embedded.openocd.conf.factory" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="rp2040_baremetal" TARGET_NAME="firmware.elf" CONFIG_NAME="Debug-embedded" version="1" RUN_TARGET_PROJECT_NAME="rp2040_baremetal" RUN_TARGET_NAME="firmware.elf">
+    <openocd version="1" gdb-port="2331" telnet-port="2334" board-config="" reset-type="RUN" download-type="UPDATED_ONLY">
+      <debugger toolchainName="embedded" />
+    </openocd>
+    <method v="2">
+      <option name="CLION.COMPOUND.BUILD" enabled="true" />
+    </method>
+  </configuration>
+</component>
