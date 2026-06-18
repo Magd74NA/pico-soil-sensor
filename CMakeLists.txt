@@ -3,8 +3,10 @@
 # Builds a flashable image from:
 #   src/main.c      your application (default: blink GP25)
 #   src/startup.c   Cortex-M0+ C startup: vector table + Reset_Handler
+#   src/system_RP2040.c  CMSIS system file (SystemInit + SystemCoreClock)
 #   ld/memmap.ld    linker script (boot2 @ 0x10000000, app @ 0x10000100)
 #   boot2/          second-stage bootloader, built from readable source
+#   cmsis/          CMSIS-Core + RP2040 device header (vendor-blessed)
 #
 # Configure with the arm-none-eabi toolchain:
 #   cmake -B build -DCMAKE_TOOLCHAIN_FILE=./arm-none-eabi-gcc.cmake -G Ninja
@@ -82,15 +84,26 @@ add_custom_command(
 )
 
 # ---------------------------------------------------------------------------
-# Application image: startup + main + the embedded padded boot2 blob.
+# CMSIS — vendor Core + RP2040 device headers (system include, no warnings).
+#   RP2040.h includes core_cm0plus.h, so both paths must be on the search list.
+# ---------------------------------------------------------------------------
+set(CMSIS_CORE_INC   ${CMAKE_CURRENT_SOURCE_DIR}/cmsis/Core/Include)
+set(CMSIS_DEVICE_INC ${CMAKE_CURRENT_SOURCE_DIR}/cmsis/Device/RP2040/Include)
+
+# ---------------------------------------------------------------------------
+# Application image: startup + system + main + the embedded padded boot2 blob.
 # ---------------------------------------------------------------------------
 add_executable(${FIRMWARE}.elf
     src/startup.c
+    src/system_RP2040.c
     src/main.c
     ${BOOT2_PAD_ASM}
 )
 
-target_include_directories(${FIRMWARE}.elf PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(${FIRMWARE}.elf PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(${FIRMWARE}.elf SYSTEM PRIVATE
+    ${CMSIS_CORE_INC} ${CMSIS_DEVICE_INC})
 target_compile_options(${FIRMWARE}.elf PRIVATE -Os -g3 -Wall -Wextra -Wno-main)
 target_link_options(${FIRMWARE}.elf PRIVATE
     -T${CMAKE_CURRENT_SOURCE_DIR}/ld/memmap.ld

@@ -11,6 +11,7 @@
  */
 
 #include <stdint.h>
+#include "RP2040.h"   /* CMSIS: SCB, NVIC, IRQn_Type, SystemInit, ... */
 
 /* ----------------------------------------------------------------------- */
 /*  Symbols provided by the linker script (ld/memmap.ld). These are the     */
@@ -27,16 +28,10 @@ extern uint32_t __bss_end__;     /* RAM: end of zero-initialized section      */
 int main(void);
 
 /* Optional, overridable early-init hook (called before main, after .bss).
- * Weak + default-empty so main() runs even if you don't define it. Override it
- * to set up clocks (XOSC/PLL -> 125 MHz), etc. — see SystemInit() below. */
+ * Weak + default-empty so main() runs even if you don't define it. The CMSIS
+ * system file (system_RP2040.c) provides a STRONG SystemInit() that overrides
+ * this one — add clock setup (XOSC/PLL -> 125 MHz) there. */
 void SystemInit(void) __attribute__((weak));
-
-/* ----------------------------------------------------------------------- */
-/*  SCB (System Control Block) — VTOR register                              */
-/*  Writing it makes the CPU use our vector table. boot2 already does this, */
-/*  but we redo it so the image also boots when launched straight by gdb.   */
-/* ----------------------------------------------------------------------- */
-#define SCB_VTOR (*(volatile uint32_t *)0xE000ED08u)
 
 /* ----------------------------------------------------------------------- */
 /*  Default handler — any unexpected exception hangs here.                  */
@@ -149,9 +144,10 @@ const uint32_t vector_table[] = {
 /*  valid SP (set by hardware from vector_table[0]). Must not return.       */
 /* ----------------------------------------------------------------------- */
 void Reset_Handler(void) {
-    /* Point VTOR at our vector table (redundant after boot2, but makes the  */
-    /* image work when launched directly by gdb without going through boot2).*/
-    SCB_VTOR = (uint32_t)vector_table;
+    /* Point VTOR at our vector table via the CMSIS SCB register (redundant
+     * after boot2, but makes the image work when launched directly by gdb
+     * without going through boot2). */
+    SCB->VTOR = (uint32_t)vector_table;
 
     /* Copy .data initial values from flash (__etext) to RAM. */
     uint32_t *src = &__etext;
@@ -177,6 +173,6 @@ void Reset_Handler(void) {
     }
 }
 
-/* Default SystemInit — override this in your code to set up clocks etc. */
+/* Weak default SystemInit — overridden by system_RP2040.c's strong version. */
 void SystemInit(void) {
 }

@@ -42,11 +42,16 @@ rp2040-baremetal-template/
 │
 ├── src/
 │   ├── main.c                  <-- YOUR APPLICATION (default: blink GP25)
-│   └── startup.c                Cortex-M0+ C startup: vector table + Reset_Handler
+│   ├── startup.c                Cortex-M0+ C startup: vector table + Reset_Handler
+│   └── system_RP2040.c          CMSIS system file: SystemInit() + SystemCoreClock
 ├── ld/
 │   └── memmap.ld               linker script (boot2 @ 0x10000000, app @ 0x10000100)
 ├── include/
-│   └── rp2040.h                minimal register defs + GPIO helpers (grow this)
+│   └── rp2040.h                GPIO helpers on top of CMSIS (SIO->, SCB->, ...)
+│
+├── cmsis/                      CMSIS-Core + RP2040 device header (vendor-blessed)
+│   ├── Core/Include/            core_cm0plus.h, cmsis_gcc.h, ... (SCB/NVIC/SysTick)
+│   └── Device/RP2040/Include/   RP2040.h (full peripheral map), system_RP2040.h
 │
 └── boot2/                      SECOND-STAGE BOOTLOADER, built from source
     ├── boot2_w25q080.S         readable source: configures W25Q080 QSPI XIP mode
@@ -66,8 +71,16 @@ rp2040-baremetal-template/
    - `set(FIRMWARE ...)` in `CMakeLists.txt`
    - `FIRMWARE ?= ...` at the top of `Makefile`
    - `loadfile firmware.hex` in `flash.jlink`
-3. **Add registers** to `include/rp2040.h` as needed (UART, timers, clocks, PIO…).
-4. **Rename the project** (optional) — change `project(rp2040_baremetal ...)` in
+3. **Access hardware** via the CMSIS device header — `#include "RP2040.h"` (or
+   `"rp2040.h"` for the helpers too). Every peripheral is a typed struct:
+   `SIO->GPIO_OUT_XOR = (1u << 25);`, `SCB->VTOR = ...`, `NVIC_EnableIRQ(...)`.
+   Add project-specific sugar to `include/rp2040.h`.
+4. **Rename the firmware** (optional). The output artifact defaults to `firmware`.
+   To change it, update `FIRMWARE` in three places:
+   - `set(FIRMWARE ...)` in `CMakeLists.txt`
+   - `FIRMWARE ?= ...` at the top of `Makefile`
+   - `loadfile firmware.hex` in `flash.jlink`
+5. **Rename the project** (optional) — change `project(rp2040_baremetal ...)` in
    `CMakeLists.txt`. CLion picks up the new name automatically; only the `.idea/`
    run config's `PROJECT_NAME` references the old name and is easy to recreate.
 
@@ -80,8 +93,9 @@ rp2040-baremetal-template/
 2. **boot2** (`boot2/boot2_w25q080.S`) — readable assembly that configures the
    QSPI/XIP interface so flash is executable, sets `VTOR = 0x10000100`, then
    loads SP + reset-handler from the vector table and jumps.
-3. **startup.c** (`Reset_Handler`) re-sets VTOR, copies `.data` flash→RAM, zeroes
-   `.bss`, calls `main`.
+3. **startup.c** (`Reset_Handler`) re-sets VTOR via `SCB->VTOR`, copies `.data`
+   flash→RAM, zeroes `.bss`, calls `SystemInit()` (from system_RP2040.c), then
+   `main`.
 4. **main** is your code.
 
 ### How boot2 is built (reproduces the SDK pipeline)
@@ -103,7 +117,34 @@ The one board-specific knob, `PICO_FLASH_SPI_CLKDIV=2`, is set explicitly
 > **Clocks are not initialized** by this template, so `clk_sys` runs from the
 > ROSC at an unspecified frequency (a few MHz). Fine for blinking/toggling; for
 > a deterministic 125 MHz core, start XOSC + PLL (see the SDK's `clocks.c`) and
-> use the hardware TIMER for accurate delays.
+> use the hardware TIMER for accurate delays. `SystemInit()` in
+> `src/system_RP2040.c` is the canonical place to do that (and to set
+> `SystemCoreClock`).
+
+---
+
+## CMSIS headers
+
+This project ships the **official CMSIS-Core** plus the **RP2040 device header**
+(the same vendor-blessed set the SDK uses), under `cmsis/`. No SDK required.
+
+- `cmsis/Core/Include/` — ARM's `core_cm0plus.h` + compiler shims. Provides the
+  core register access: `SCB->VTOR`, `NVIC_EnableIRQ(...)`, `SysTick_Config(...)`,
+  `__enable_irq()`, the `IRQn_Type`-aware interrupt API, etc.
+- `cmsis/Device/RP2040/Include/RP2040.h` — SVD-generated full register map.
+  Every peripheral is a typed struct with a base-pointer macro:
+  `SIO`, `IO_BANK0`, `CLOCKS`, `RESETS`, `UART0`, `ADC`, `PIO0`, ... So you write
+  `SIO->GPIO_OUT_XOR = (1u << 25);` instead of hand-computing addresses.
+- `src/system_RP2040.c` — the CMSIS system file: owns `SystemInit()` and
+  `SystemCoreClock`. We replace the SDK's version (which depends on `clock_get_hz`).
+
+To use: `#include "RP2040.h"` (or `#include "rp2040.h"` for the GPIO helpers too).
+The build adds both `cmsis/` include dirs as `-isystem` (so vendor headers don't
+trigger `-Wall`).
+
+> **Include-guard gotcha:** the device header guards with `#ifndef RP2040_H`, so
+> any helper header must use a *different* guard (this project's `rp2040.h` uses
+> `RP2040_HELPERS_H`) or it'll silently skip the whole CMSIS header.
 
 ---
 
