@@ -518,14 +518,24 @@ CMSIS expects a per-device "system" file providing `SystemInit()` and the
 `clock_get_hz()` (SDK-only), so we replace it with a bare-metal version that
 leaves clock setup as the TODO described in §8.
 
-### 7.4 Gotcha: include-guard collision
+### 7.4 Gotcha: include-guard collision (and the case-insensitive FS trap)
 
 The device header guards with `#ifndef RP2040_H`. Our helper header
-`include/rp2040.h` originally used the *same* guard — so when it did
+originally used the *same* guard — so when it did
 `#include "RP2040.h"`, the guard was already defined and **the entire CMSIS
 header got silently skipped**, leaving `SIO`/`IO_BANK0_BASE` undeclared. The
 helper now uses a unique guard (`RP2040_HELPERS_H`). **Rule: never reuse a
 vendor's include guard in your own header.**
+
+A second, sneakier variant bites on **case-insensitive filesystems** (macOS
+APFS, Windows). If the helper is named `rp2040.h`, then `#include "RP2040.h"`
+resolves to the *helper itself* (the current-file directory and `-Iinclude`
+both match case-insensitively) before the `-isystem` device directory is ever
+searched — the unique guard then skips it, and the device header is never
+loaded. The unique guard is necessary but not sufficient. Hence the helper is
+named `rp2040_helpers.h`: a name that can't collide with `RP2040.h` on any
+filesystem. **Rule: don't give your own header a name that differs from a
+vendor header's by case alone.**
 
 ---
 

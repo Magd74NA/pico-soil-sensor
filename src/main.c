@@ -8,7 +8,7 @@
  * 125 MHz core, start XOSC + PLL (see the SDK's clocks.c) and use the hardware
  * timer for accurate delays.
  */
-#include "rp2040.h"
+#include "rp2040_helpers.h"
 
 /* Onboard LED on the original Raspberry Pi Pico. GP25 is NOT broken out to the
  * 40-pin header — for an external LED use a header pin such as GP19 (pin 24):

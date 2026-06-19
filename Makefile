@@ -88,7 +88,7 @@ $(SYSTEM_O): src/system_RP2040.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(MAIN_O): src/main.c include/rp2040.h
+$(MAIN_O): src/main.c include/rp2040_helpers.h
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 

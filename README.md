@@ -47,7 +47,7 @@ rp2040-baremetal-template/
 ├── ld/
 │   └── memmap.ld               linker script (boot2 @ 0x10000000, app @ 0x10000100)
 ├── include/
-│   └── rp2040.h                GPIO helpers on top of CMSIS (SIO->, SCB->, ...)
+│   └── rp2040_helpers.h        GPIO helpers on top of CMSIS (SIO->, SCB->, ...)
 │
 ├── cmsis/                      CMSIS-Core + RP2040 device header (vendor-blessed)
 │   ├── Core/Include/            core_cm0plus.h, cmsis_gcc.h, ... (SCB/NVIC/SysTick)
@@ -72,9 +72,9 @@ rp2040-baremetal-template/
    - `FIRMWARE ?= ...` at the top of `Makefile`
    - `loadfile firmware.hex` in `flash.jlink`
 3. **Access hardware** via the CMSIS device header — `#include "RP2040.h"` (or
-   `"rp2040.h"` for the helpers too). Every peripheral is a typed struct:
+   `"rp2040_helpers.h"` for the helpers too). Every peripheral is a typed struct:
    `SIO->GPIO_OUT_XOR = (1u << 25);`, `SCB->VTOR = ...`, `NVIC_EnableIRQ(...)`.
-   Add project-specific sugar to `include/rp2040.h`.
+   Add project-specific sugar to `include/rp2040_helpers.h`.
 4. **Rename the firmware** (optional). The output artifact defaults to `firmware`.
    To change it, update `FIRMWARE` in three places:
    - `set(FIRMWARE ...)` in `CMakeLists.txt`
@@ -138,7 +138,9 @@ This project ships the **official CMSIS-Core** plus the **RP2040 device header**
 - `src/system_RP2040.c` — the CMSIS system file: owns `SystemInit()` and
   `SystemCoreClock`. We replace the SDK's version (which depends on `clock_get_hz`).
 
-To use: `#include "RP2040.h"` (or `#include "rp2040.h"` for the GPIO helpers too).
+To use: `#include "RP2040.h"` (or `#include "rp2040_helpers.h"` for the GPIO helpers too).
+   (The helper is named `rp2040_helpers.h`, not `rp2040.h`, so it doesn't collide
+   with the device header `RP2040.h` on case-insensitive filesystems like macOS.)
 The build adds both `cmsis/` include dirs as `-isystem` (so vendor headers don't
 trigger `-Wall`).
 
